@@ -44,4 +44,33 @@ const tokenCheck = async (req, res, next) => {
 
 }
 
-module.exports = { createToken, tokenCheck }
+const createTemporaryToken= async (userId,email )=>{
+    const payload ={
+        sub : userId,
+        email
+    }
+
+    const token = await jwt.sign(payload,process.env.JWT_TEMPORARY_KEY , {
+        algorithm: "HS512",
+        expiresIn: process.env.JWT_TEMPORARY_EXPIRES_IN,
+    })
+
+    return "Bearer " + token
+}
+
+const decodedTemporaryToken=async(temporaryToken) =>{
+    const token = temporaryToken.split(" ")[1]
+    await jwt.verify(token,process.env.JWT_TEMPORARY_KEY, async (err,decoded) =>{
+        if(err) throw new APIError("Invalid Token",401)
+
+        const userInfo = await user.findById(decoded.sub).select("_id name lastname email")
+        if(!userInfo) throw new APIError("Invalid User",401)
+        
+    })
+
+    return userInfo
+}
+
+
+
+module.exports = { createToken, tokenCheck ,createTemporaryToken,decodedTemporaryToken}
